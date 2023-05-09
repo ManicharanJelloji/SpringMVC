@@ -1,0 +1,146 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+
+<beans xmlns = "http://www.springframework.org/schema/beans"
+   xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance"
+   xmlns:context="http://www.springframework.org/schema/context"
+   xmlns:mvc="http://www.springframework.org/schema/mvc"
+   xmlns:tx="http://www.springframework.org/schema/tx"
+   xmlns:jms="http://www.springframework.org/schema/jms"
+   xmlns:amq="http://activemq.apache.org/schema/core"
+   xmlns:sec="http://www.springframework.org/schema/security"
+   xsi:schemaLocation = "
+   http://www.springframework.org/schema/beans
+   http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+   http://www.springframework.org/schema/context
+   http://www.springframework.org/schema/context/spring-context-4.1.xsd
+   http://www.springframework.org/schema/tx
+   http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+   http://www.springframework.org/schema/mvc
+   http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+   http://www.springframework.org/schema/jms
+   http://www.springframework.org/schema/jms/spring-jms-4.1.xsd
+   http://activemq.apache.org/schema/core
+   https://activemq.apache.org/schema/core/activemq-core.xsd
+   http://www.springframework.org/schema/security
+   http://www.springframework.org/schema/security/spring-security-4.1.xsd">
+   
+  <!-- <sec:http auto-config="true">-->
+	<sec:http auto-config=" true" use-expressions="true">
+	   <sec:intercept-url pattern="/login" access="permitAll"/>
+	   <sec:intercept-url pattern="/logout" access="permitAll"/>
+	   <sec:intercept-url pattern="/accessdenied" access="permitAll"/>
+	   <sec:intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
+	   <sec:intercept-url pattern="/admin**" access="hasRole('ROLE_ADMIN')"/>
+	   
+	   <sec:form-login authentication-failure-url="/accessdenied" />
+	   <sec:http-basic />
+	   <sec:logout logout-success-url="/logout" />
+	   <sec:csrf disabled="true"/>
+   	</sec:http>
+   
+   <!--<sec:authentication-manager>
+	   <sec:authentication-provider>
+		   <sec:user-service>
+			   <sec:user name="spring" password="security" authorities="ROLE_USER" />
+		   </sec:user-service>
+	   </sec:authentication-provider>
+   </sec:authentication-manager>-->
+   
+   <!-- the above code is for in memory authentication
+   		and the below code is for database authentication-but for this example we need to create a class-->
+   
+   <sec:authentication-manager alias="authenticationManager">
+	   <sec:authentication-provider user-service-ref="myUserDetailsService">
+		   
+	   </sec:authentication-provider>
+   </sec:authentication-manager>
+	
+   <!-- -->
+   <context:component-scan base-package="com.spring.mvc"></context:component-scan>
+   <context:annotation-config></context:annotation-config>
+   <mvc:annotation-driven></mvc:annotation-driven>
+   <tx:annotation-driven />
+   <amq:connectionFactory id="connectionFactory" brokerURL="tcp://localhost:61616"></amq:connectionFactory>
+   <amq:queue id="queue" physicalName="user.queue"></amq:queue>
+   
+   <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+	   <property name="prefix">
+		   <value>/WEB-INF/views/</value>
+	   </property>
+	   <property name="suffix">
+		   <value>.jsp</value>
+	   </property>
+   </bean>
+   
+   
+   <bean id="hibernateTemplate" class="org.springframework.orm.hibernate4.HibernateTemplate">
+	  	<property name="sessionFactory" ref="sessionFactory"></property>
+   </bean>
+   <bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+	   <property name="dataSource" ref="dataSource"></property>
+	   <property name="mappingResources">
+		   <list>
+			   <value>Login.hbm.xml</value>
+			   <value>Register.hbm.xml</value>
+			   <value>Role.hbm.xml</value>
+		   </list>
+	   </property>
+	   <property name="hibernateProperties">
+		   <props>
+			   <prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
+			   <prop key="hibernate.show_sql">true</prop>
+			   <!--<prop key="hibernate.hbm2ddl.auto">update</prop>-->
+			   <prop key="hibernate.hbm2ddl.auto">update</prop>
+		   </props>
+	   </property>
+   </bean>
+   <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	   <property name="driverClassName" value="${database.driver}"></property>
+	   <property name="url" value="${database.url}"></property>
+	   <property name="username" value="${database.username}"></property>
+	   <property name="password" value="${database.password}"></property>
+   </bean>
+   
+   <bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+	   <property name="sessionFactory" ref="sessionFactory"></property>
+   </bean>
+   <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+	   <property name="location" value="classpath:spring-jdbc.properties"></property>
+   </bean>
+   <bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+	   <property name="javaMailProperties">
+		   <props>
+			   <!-- <prop key="mail.smtp.host">host</prop>
+			   <prop key="mail.smtp.socketFactory.port">465</prop>
+			   <prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>
+			   <prop key="mail.smtp.auth">true</prop>
+			   <prop key="mail.smtp.port">465</prop>
+			   <prop key="mail.smtp.socketFactory.fallback">true</prop>
+			   <prop key="mail.transport.protocol">smtp</prop>
+			   <prop key="mail.debug">true</prop>-->
+			   <prop key="mail.transport.protocol">smtp</prop>
+			   <prop key="mail.smtp.auth">true</prop>
+			   <prop key="mail.smtp.starttls.enable">true</prop>
+			   <prop key="mail.smtp.ssl.protocols">TLSv1.2</prop>
+			   <prop key="mail.debug">true</prop>
+			   <prop key="authentication">plain</prop>
+			   <prop key="mail.smtp.ssl.trust">smtp-mail.outlook.com</prop>
+		   </props>
+	   </property>
+	   <property name="host" value="smtp-mail.outlook.com"></property>
+	   <property name="port" value="587"></property>
+	   <property name="username" value="manicharan7002@outlook.com"></property>
+	   <property name="password" value="mani0504"></property>
+	   
+   </bean>
+   <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+	   <!--<property name="maxUploadSize" value="20971520"></property>
+	   <property name="maxInMemorySize" value="1048576"></property>-->
+   </bean>
+   <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+	   <property name="connectionFactory" ref="connectionFactory"></property>
+	   <property name="defaultDestinationName" value="user.alert.queue"></property>
+   </bean>
+   
+   
+</beans>

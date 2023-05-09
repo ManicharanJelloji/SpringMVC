@@ -1,0 +1,24 @@
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+	<class name="com.spring.mvc.Login" table="LOGIN">
+		<id name="id" column="LOGIN_ID" type="long">
+			<generator class="foreign">
+				<param name="property">register</param>
+			</generator>
+		</id>
+		<property name="userName" column="USERNAME"></property>
+		<property name="password" column="PASSWORD"></property>
+		<property name="validFlag" column="VALID_FLAG"></property>
+		<one-to-one name="register" class="com.spring.mvc.Register" constrained="true"></one-to-one>
+		
+		<set name="roles" inverse="true"  fetch="select" lazy="false">
+		<!--<set name="roles" inverse="true">-->
+			<key>
+				<column name="LOGIN_ID" not-null="true"/>
+			</key>
+			<one-to-many class="com.spring.mvc.Role" />
+		</set>
+		
+	</class> 
+</hibernate-mapping>
